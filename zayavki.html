@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Заявка на должность</title>
+<style>
+:root{--bg:#f3f1ec;--card:#fff;--ink:#1d1b19;--mute:#6d6a64;--line:#d9d5cc;--acc:#1f4fd8;--acc-ink:#fff;--ok:#1a7f4b;--no:#b4372c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15161a;--card:#202228;--ink:#eceae5;--mute:#9a978f;--line:#33363e;--acc:#6f95ff;--acc-ink:#0c1230;--ok:#4cc58a;--no:#ff8a7d}}
+:root[data-theme="dark"]{--bg:#15161a;--card:#202228;--ink:#eceae5;--mute:#9a978f;--line:#33363e;--acc:#6f95ff;--acc-ink:#0c1230;--ok:#4cc58a;--no:#ff8a7d}
+*{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Manrope","Segoe UI",system-ui,sans-serif;line-height:1.5}
+main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.6rem;line-height:1.2;margin:8px 0 6px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.3rem;line-height:1.3;margin:0 0 18px;font-weight:700}
+p{margin:0 0 16px;color:var(--mute)}
+.roles{display:grid;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:13px 16px;text-align:left}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.role{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.role small{color:var(--mute);font-weight:500}
+.role:hover{border-color:var(--acc)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:0 0 6px}
+.bar i{display:block;height:100%;background:var(--acc);transition:width .25s}
+.meta{font-size:.85rem;color:var(--mute);margin-bottom:22px;display:flex;justify-content:space-between}
+textarea{width:100%;min-height:130px;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);resize:vertical}
+.row{display:flex;gap:10px;margin-top:14px}
+.row button{flex:1;text-align:center;font-weight:600}
+.pri{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.pri:disabled{opacity:.4;cursor:not-allowed}
+.yes{border-color:var(--ok);color:var(--ok);font-size:1.1rem;padding:18px}
+.no{border-color:var(--no);color:var(--no);font-size:1.1rem;padding:18px}
+.link{background:none;border:none;color:var(--mute);padding:10px 0;text-decoration:underline}
+.send{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:10px;padding:14px 16px;margin:0 0 14px;font-weight:700}
+#out{min-height:320px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<section id="s-start">
+<h1>Заявка на должность</h1>
+<p>Выбери роль, на которую подаёшь заявку, и ответь на вопросы. В конце получишь готовое сообщение.</p>
+<div class="roles" id="roles"></div>
+</section>
+
+<section id="s-q" class="hide">
+<div class="bar"><i id="fill"></i></div>
+<div class="meta"><span id="roleName"></span><span id="count"></span></div>
+<h2 id="qText"></h2>
+<div id="txt">
+<textarea id="ans" placeholder="Введи ответ"></textarea>
+<div class="row"><button id="prev" type="button">Назад</button><button id="next" type="button" class="pri" disabled>Далее</button></div>
+</div>
+<div id="yn" class="hide">
+<div class="row"><button class="yes" type="button" data-v="Да">Да</button><button class="no" type="button" data-v="Нет">Нет</button></div>
+<div class="row"><button id="prev2" type="button">Назад</button></div>
+</div>
+</section>
+
+<section id="s-end" class="hide">
+<h1>Заявка готова</h1>
+<div class="send">Отправь это сообщение в группу для заявлений</div>
+<textarea id="out" readonly></textarea>
+<div class="row"><button id="copy" type="button" class="pri">Скопировать сообщение</button></div>
+<div class="row"><button id="back" type="button">Изменить ответы</button><button id="again" type="button">Начать заново</button></div>
+</section>
+</main>
+<script>
+var N="Ник в группе:",A="Возраст:",Z="Часовой пояс:",ST="Статистика сообщений в группе (за последние 30 дней):",
+ACT="Среднее время активности в день:",WARN="~Наличие действующих предупреждений или выговоров?",
+CALL="~Готовы ли вы пройти обзвон?",RULES="~Ознакомлены ли вы с правилами группы в полном объёме?",
+REP="Подробный отчёт о проделанной работе за период нахождения в должности:",
+EXPA="Опыт администрирования (где, в какой роли, как долго):",EXPL="Опыт руководства (где, в какой роли, как долго):";
+var ROLES=[
+["Младший модератор","МЛАДШЕГО МОДЕРАТОРА",[N,A,Z,"Дата вступления в группу:",ST,ACT,"~Наличие действующих предупреждений или наказаний?","Опыт модерации (где, в какой роли, как долго):","Мотивация: для чего вы претендуете на роль младшего модератора?","Ваши сильные стороны и чем вы будете полезны группе:","Как вы поступите, если участник нарушает правила группы?",RULES,CALL]],
+["Модератор","МОДЕРАТОРА",[N,A,Z,"Текущая должность:","Срок пребывания в группе:",ST,ACT,WARN,"Мотивация: для чего вы претендуете на данную должность?","Как вы поступите, если участник нарушает правила группы?",RULES,CALL]],
+["Старший модератор","СТАРШЕГО МОДЕРАТОРА",[N,A,Z,"Дата назначения на должность модератора:",ST,ACT,"Количество выданных наказаний за период работы модератором:",WARN,"Ваши достижения и вклад в развитие группы:","Мотивация: для чего вы претендуете на должность старшего модератора?","Как вы поступите, если младший модератор допустил ошибку при выдаче наказания?","Как вы поступите в конфликтной ситуации между участниками группы?","~Готовы ли вы обучать и контролировать младший состав?",CALL]],
+["Младший администратор","МЛАДШЕГО АДМИНИСТРАТОРА",[N,A,Z,"Дата назначения на текущую должность:",ST,ACT,"Отчёт о проделанной работе на текущей должности:",WARN,EXPA,"Мотивация: для чего вы претендуете на должность младшего администратора?","Ваши предложения по улучшению работы группы:","Как вы поступите, если модератор нарушил правила или превысил полномочия?","Как вы будете разрешать спорные вопросы между участниками и модераторами?","~Готовы ли вы нести ответственность за работу модераторского состава?",CALL]],
+["Администратор","АДМИНИСТРАТОРА",[N,A,Z,"Дата назначения на должность младшего администратора:",ACT,"Отчёт о проделанной работе за период нахождения в должности:",WARN,EXPA,"Мотивация: для чего вы претендуете на должность администратора?","Какие изменения вы внесли или предложили для развития группы?","Как вы поступите, если в группе возникла критическая ситуация (спам-атака, массовые нарушения, конфликт в составе)?","Как вы оцениваете работу модераторского состава и что в ней необходимо улучшить?","~Готовы ли вы принимать кадровые решения и нести за них ответственность?",CALL]],
+["Старший администратор","СТАРШЕГО АДМИНИСТРАТОРА",[N,A,Z,"Дата назначения на должность администратора:",ACT,REP,WARN,"Ваш вклад в развитие и популяризацию группы:","Мотивация: для чего вы претендуете на должность старшего администратора?","Ваше видение развития группы на ближайшие 3 месяца:","Как вы организуете работу и контроль младшего административного состава?","Как вы поступите, если между членами администрации возник конфликт?","~Готовы ли вы нести ответственность за решения администрации?","~Готовы ли вы пройти обзвон и собеседование с руководством?"]],
+["Куратор","КУРАТОРА",[N,A,Z,"Дата назначения на должность старшего администратора:",ACT,REP,WARN,EXPL,"Мотивация: для чего вы претендуете на должность куратора?","Какие направления работы вы планируете курировать и какие цели поставите?","Как вы будете контролировать работу администраторов и модераторов?","Как вы будете обучать и развивать состав?","Как вы поступите, если выявите злоупотребление полномочиями со стороны администратора?","~Готовы ли вы нести полную ответственность за курируемое направление?","~Готовы ли вы пройти собеседование с руководством группы?"]],
+["Заместитель главного администратора (ЗГА)","ЗАМЕСТИТЕЛЯ ГЛАВНОГО АДМИНИСТРАТОРА (ЗГА)",[N,A,Z,"Дата назначения на должность куратора:",ACT,"Полный отчёт о проделанной работе на должности куратора:",WARN,EXPL,"Мотивация: для чего вы претендуете на должность ЗГА?","Ваша стратегия развития группы на ближайшие 3–6 месяцев:","Какие проблемы в работе группы вы видите и как предлагаете их решить?","Как вы будете взаимодействовать с главным администратором и распределять полномочия?","Как вы поступите, если решение главного администратора, по вашему мнению, ошибочно?","~Готовы ли вы быть доступным для группы в любое время и нести ответственность за всю администрацию?","~Готовы ли вы пройти собеседование с главным администратором?"]],
+["Главный администратор (Г.А)","ГЛАВНОГО АДМИНИСТРАТОРА (Г.А)",[N,A,Z,"Дата назначения на должность ЗГА:",ACT,"Полный отчёт о проделанной работе на должности ЗГА:",WARN,"Опыт руководства сообществами (где, в какой роли, как долго):","Мотивация: для чего вы претендуете на должность главного администратора?","Концепция развития группы на ближайший год:","Ваши принципы подбора и оценки административного состава:","Как вы будете принимать окончательные решения в спорных и кризисных ситуациях?","Что вы считаете главными слабыми местами группы на данный момент?","~Готовы ли вы нести полную ответственность за группу?","~Готовы ли вы пройти итоговое собеседование?"]]
+];
+var $=function(i){return document.getElementById(i)};
+var role=null,i=0,answers=[];
+function show(id){["s-start","s-q","s-end"].forEach(function(s){$(s).classList.toggle("hide",s!==id)})}
+var box=$("roles");
+ROLES.forEach(function(r,k){var b=document.createElement("button");b.type="button";b.className="role";
+b.innerHTML="<span></span><small>"+r[2].length+" вопр.</small>";b.firstChild.textContent=r[0];
+b.onclick=function(){role=ROLES[k];i=0;answers=[];render();show("s-q")};box.appendChild(b)});
+function render(){
+var qs=role[2],raw=qs[i],yn=raw.charAt(0)==="~",q=yn?raw.slice(1):raw;
+$("roleName").textContent=role[0];$("count").textContent="Вопрос "+(i+1)+" из "+qs.length;
+$("fill").style.width=((i)/qs.length*100)+"%";$("qText").textContent=q;
+$("txt").classList.toggle("hide",yn);$("yn").classList.toggle("hide",!yn);
+if(!yn){$("ans").value=answers[i]||"";$("next").disabled=!$("ans").value.trim();$("next").textContent=i===qs.length-1?"Готово":"Далее";$("ans").focus()}
+}
+function go(v){answers[i]=v;if(i>=role[2].length-1){finish()}else{i++;render()}}
+function prev(){if(i>0){i--;render()}else{show("s-start")}}
+$("ans").oninput=function(){$("next").disabled=!this.value.trim()};
+$("next").onclick=function(){go($("ans").value.trim())};
+$("prev").onclick=prev;$("prev2").onclick=prev;
+document.querySelectorAll("#yn [data-v]").forEach(function(b){b.onclick=function(){go(b.getAttribute("data-v"))}});
+function finish(){
+var lines=["ФОРМА ПОДАЧИ ЗАЯВКИ НА ДОЛЖНОСТЬ "+role[1],""];
+role[2].forEach(function(raw,k){var q=raw.charAt(0)==="~"?raw.slice(1):raw;lines.push((k+1)+". "+q+" "+answers[k],"")});
+$("out").value=lines.join("\n").replace(/\s+$/,"");show("s-end")}
+$("copy").onclick=function(){var t=$("out"),b=this;t.focus();t.select();
+function ok(){b.textContent="Скопировано";setTimeout(function(){b.textContent="Скопировать сообщение"},2000)}
+try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(ok,function(){document.execCommand("copy")&&ok()});return}}catch(e){}
+try{document.execCommand("copy")&&ok()}catch(e){}};
+$("back").onclick=function(){i=role[2].length-1;render();show("s-q")};
+$("again").onclick=function(){role=null;answers=[];show("s-start")};
+</script>
+</body>
+</html>
